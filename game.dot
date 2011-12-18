@@ -1,0 +1,57 @@
+digraph graphname {
+
+    subgraph Legend {
+        Situation [label="place or situations",style=filled,color="#3b6140",fontcolor=white,fontname="Sens-Bold"];
+        Decision [label="decision"shape=box,style=filled,color="#613b3b",fontcolor=white,fontname="Sens-Bold"];
+        Situation -> Decision [label="option",color="#155a14"];
+        Decision -> Situation [label="consequence",color="#5a1414"]
+        label = "sdfgjl hsdflkj"
+        color = black;        
+    }
+    
+    subgraph Situations {
+        node [style=filled,color="#3b6140",fontcolor=white,fontname="Sens-Bold"];
+        Jail;
+        Street;
+        Club;
+        Busted [label="Busted(s)"];
+    }
+    
+    subgraph Decisions {
+        node [shape=box,style=filled,color="#613b3b",fontcolor=white,fontname="Sens-Bold"];
+        BailYourselfOut;
+        GotoClub;
+        GotoStreet;
+        SellDrugs;
+        GotoJail;
+        BribePolice;
+        SnitchFriend;
+    }
+
+    subgraph Options {
+        edge [color="#155a14"]
+        Jail -> BailYourselfOut;
+        Street -> SellDrugs
+        Street -> GotoClub;
+        Club -> GotoStreet
+        Busted -> GotoJail
+        Busted -> BribePolice
+        Busted -> SnitchFriend
+    }
+
+    subgraph Consequences {
+        edge [color="#5a1414"]
+        BailYourselfOut -> Street
+        GotoClub -> Club
+        GotoClub -> Busted
+        GotoStreet -> Street
+        GotoStreet -> Busted
+        SellDrugs -> Street
+        SellDrugs -> Busted
+        GotoJail -> Jail
+        BribePolice -> s
+        BribePolice -> Jail
+        SnitchFriend -> s
+        SnitchFriend -> Jail
+    }
+}
