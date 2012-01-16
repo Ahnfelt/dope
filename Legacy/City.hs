@@ -1,4 +1,4 @@
-module Citywhere
+module City where
 
 -- | Geographic coordinate express in radians
 type GeographicCoordinate = (Double, Double)

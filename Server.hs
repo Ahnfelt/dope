@@ -11,30 +11,9 @@ import Data.Map (Map)
 import Data.Label
 import Prelude hiding ((.), id)
 
+import Protocol
 import Dope
 import State
-
-data Request
-    = UsePlayer String
-    | NewPlayer String
-    | Act Option
-    | Quit
-    deriving (Show, Read, Eq)
-    
-data Response
-    = OK Player [Option]
-    | Error Error
-    | Bye
-    deriving (Show, Read, Eq)
-
-data Error
-    = InvalidRequest
-    | IlligalAct String Player [Option]
-    | PlayerDoesNotExist
-    | NotLoggedIn
-    | PlayerAlreadyExist
-    deriving (Show, Read, Eq)
-
 
 serveClient :: TVar GameState -> Maybe (TVar Player) -> (Handle, HostName, PortNumber) -> IO ()
 serveClient stateVar playerVar (handle, host, port) = do
@@ -123,7 +102,7 @@ main :: IO ()
 main = do 
     stateVar <- createWorld
     let port = 60000
-    let ip =  Server (SockAddrInet port (ipAddress (127, 0, 0, 1))) Stream (serveClient stateVar Nothing)
+    let ip =  Server (SockAddrInet port (ipAddress (192,168,0,148))) Stream (serveClient stateVar Nothing)
     serveMany Nothing [ip] >>= waitFor
     
     

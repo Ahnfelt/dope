@@ -3,17 +3,23 @@ import Control.Monad
 import System.Exit
 import Graphics.Vty
 import Graphics.Vty.Widgets.All
+import Data.Label
+import Prelude hiding ((.), id)
 
 import Protocol
+import Dope
+import State
+
+data Client' = Client' (Request -> IO (Response, Client'))
 
 main :: IO ()
 main = do
-    let client = undefined
+    let player = Player "John" Idle (Street (1,2)) 1000 [DrugBag Crack "Kryster" 0.7 10] True
+
+    let client = Client' $ \request -> do 
+            return (OK player [Exit], client)
     runGui client
     
-
-type Client' = Request -> IO (Response, Client')
-
 ----------------
 -- The GUI
 
@@ -22,7 +28,7 @@ runGui :: Client' -> IO ()
 runGui client = do
     logoView <- newLogoView
     (playerView, updatePlayer) <- newPlayerView
-    actionView <- newActionView act updatePlayer
+    actionView <- newActionView client updatePlayer
     
     layoutView <- newTable [column ColAuto] BorderFull
     setDefaultCellAlignment layoutView AlignCenter
@@ -33,8 +39,9 @@ runGui client = do
     -- Create focus group with exit handler
     focusGroup <- newFocusGroup
     focusGroup `onKeyPressed` \_ key _ ->
-        if key == KEsc || key == KASCII 'q' then exitSuccess else return False
+        if key == KEsc then exitSuccess else return False
     addToFocusGroup focusGroup actionView
+    setFocusGroupNextKey focusGroup (KASCII '\t') [] 
 
     -- Wrap the layout view in a collection and create a GUI runner
     collection <- newCollection
@@ -46,117 +53,105 @@ newLogoView :: IO (Widget Table)
 newLogoView = acsiiArtLogo dopeAscii1
 
 
-newActionView :: Client' -> ([Player] -> IO ()) -> IO (Widget (Group Table))
-newActionView client updatePlayer = do
-    let choose option = do
-        
-
-
-    (optionsView, updateOptions) <- newOptionView choose 
+newActionView :: Client' -> (Player -> IO ()) -> IO (Widget (Group Table))
+newActionView (Client' client) updatePlayer = do
     switcher <- newGroup
-    switchToOptionView <- addToGroup switcher mainMenu
+    let showLoginView = setCurrentGroupEntry switcher 0
+    let showOptionView = setCurrentGroupEntry switcher 1
 
-    let login playerName = do
-        response <- client (NewPlayer playerName)
-        case response of
-            OK player options -> do 
-                updatePlayer player
-                updateOptions options
-                switchToOptionView
-            Error reason -> error (show PlayerAlreadyExist) -- TODO handle PlayerAlreadyExist etc.
-            Bye -> exitSuccess
-
+    let sendAndHandle request updateOptions = do
+            (response, newClient) <- client request
+            case response of
+                OK player options -> do 
+                    updatePlayer player
+                    updateOptions options
+                    showOptionView
+                Error reason -> error (show reason)
+                Bye -> exitSuccess
                 
-        
-    loginView <- newLoginView login
-    switchToLoginView <- addToGroup switcher loginView
+    (optionsView, updateOptions) <- do
+        menu <- newList def_attr
 
-
-    where
-        newLoginView login = do
-            playerNameInputView <- editWidget
-            onActivate playerNameInputView $ \this ->
-                playerName <- getEditText this
-                login playerName
-            
-        newOptionView choose = do
-            menu <- newList def_attr
-            let updateOptions options = do
+        let updateOptions options = do
                 clearList menu
-                forM_ options $ \option ->
+                forM_ options $ \option -> do
                     item <- plainText (show option)
                     addToList menu option item
-            onItemActivated menu $ \(ActivateItemEvent index option widget) -> choose option
-            return (menu, updateOptions)
+
+        onItemActivated menu $ \(ActivateItemEvent index option widget) -> 
+            sendAndHandle (Act option) updateOptions
+        table <- wrapInTable menu
+        return (table, updateOptions)
+        
+    loginView <- do
+        playerNameInputView <- editWidget
+        onActivate playerNameInputView $ \this -> do
+            playerName <- getEditText this
+            sendAndHandle (NewPlayer playerName) updateOptions
+        table <- wrapInTable playerNameInputView
+        return table
+    
+    _ <- addToGroup switcher loginView
+    _ <- addToGroup switcher optionsView
+    showLoginView
+    return switcher
 
 
 newPlayerView :: IO (Widget Table, Player -> IO ())
-newPlayerView = undefined
+newPlayerView = do
+    (statsView, updatePlayer) <- newStatsView
+    (drugBagView, updateDrugBag) <- newDrugBagView
+
+    playerView <- newTable [column ColAuto, column ColAuto] BorderFull
+    setDefaultCellAlignment playerView AlignCenter
+    addRow playerView $ statsView .|. drugBagView
+    return (playerView, updatePlayer)
+
     where
-        newStatsView :: IO (Widget Table)
-        newStatsView = undefined
-
-        newDrugBagView :: IO (Widget Table)
-        newDrugBagView = undefined
-
-
-
-menuTest :: IO ()    
-menuTest = do    
-
-    -- Main menu
-    mainMenu <- newStringList def_attr ["Deal drugs", "Second Item", "The Last!"]
-
-    -- Deal drugs menu
-    dealMenu <- newStringList def_attr ["Sell 1 gram coke [from Kryster]", "Sell 1 drop LSD [from player 432]"]
+        newStatsView :: IO (Widget Table, Player -> IO ())
+        newStatsView = do 
+            table <- newTable [column ColAuto, column ColAuto] BorderNone
+            setDefaultCellAlignment table AlignLeft
     
-    menuSwitcher <- newGroup
-    switchToMainMenu <- addToGroup menuSwitcher mainMenu
-    switchToDealMenu <- addToGroup menuSwitcher dealMenu
-    
-    -- Handler for main menu
-    onItemActivated mainMenu $ \(ActivateItemEvent index payload widget) -> do
-        setText widget ("* " ++ payload)
-        switchToDealMenu
+            nameLabel <- plainText "Name:"             
+            nameValue <- plainText ""
+            addRow table $ nameLabel .|. nameValue            
 
-    -- Handler for deal menu
-    onItemActivated dealMenu $ \(ActivateItemEvent index payload widget) -> do
-        setText widget ("* " ++ payload)
-        switchToMainMenu
+            situationLabel <- plainText "Situation:"             
+            situationValue <- plainText ""             
+            addRow table $ situationLabel .|. situationValue            
 
-    -- Title widget
-    titleWidget <- acsiiArtLogo dopeAscii1
-    
-    -- Shows where we are in the menu tree
-    pathWidget <- plainText "path ... " >>= withNormalAttribute (fgColor green)
-    
-    -- Fixing the size of the menu widget
-    fixedWidget <- boxFixed 40 8 menuSwitcher
+            placeLabel <- plainText "Place:"             
+            placeValue <- plainText ""             
+            addRow table $ placeLabel .|. placeValue            
 
-    -- Adding borders to the menu widget
-    hPaddedWidget <- padded fixedWidget (padLeftRight 2) 
-    paddedWidget <- padded hPaddedWidget (padTopBottom 1) 
-    borderWidget <- bordered paddedWidget
-    
-    -- Using a table widget for layout
-    tableWidget <- newTable [column ColAuto] BorderFull
-    setDefaultCellAlignment tableWidget AlignCenter
-    addRow tableWidget titleWidget
-    addRow tableWidget pathWidget
-    addRow tableWidget borderWidget
+            moneyLabel <- plainText "money:"             
+            moneyValue <- plainText ""             
+            addRow table $ moneyLabel .|. moneyValue            
 
-    -- Create focus group with exit handler
-    focusGroup <- newFocusGroup
-    focusGroup `onKeyPressed` \_ key _ ->
-        if key == KEsc || key == KASCII 'q' then exitSuccess else return False
-    addToFocusGroup focusGroup menuSwitcher
+            let updatePlayer player = do
+                setText nameValue (get playerName player)
+                setText situationValue (show (get playerSituation player))
+                setText placeValue (show (get playerPlace player))
+                setText moneyValue (show (get playerMoney player) ++ "$")
 
-    -- Wrap the widget to be shown in a collection and start the shit.
-    collection <- newCollection
-    _ <- addToCollection collection tableWidget focusGroup
-    runUi collection defaultContext{skin=unicodeRoundedSkin}
+            return (table, updatePlayer)
 
+        newDrugBagView :: IO (Widget Table, Player -> IO ())
+        newDrugBagView = do
+            drugBagView <- plainText "DRUG BAG"
+            w <- wrapInTable drugBagView
+            return (w, undefined)
 
+wrapInTable :: Show a => Widget a -> IO (Widget Table)
+wrapInTable widget = do
+    fixedWidget <- boxFixed 20 8 widget
+    table <- newTable [column ColAuto] BorderNone
+    setDefaultCellAlignment table AlignCenter
+    addRow table fixedWidget
+    relayKeyEvents table widget
+    relayFocusEvents table widget
+    return table
 
 --------------------
 -- Utilities
