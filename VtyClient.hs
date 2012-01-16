@@ -9,12 +9,13 @@ import Prelude hiding ((.), id)
 import Protocol
 import Dope
 import State
+import ClientData
 
 data Client' = Client' (Request -> IO (Response, Client'))
 
 main :: IO ()
 main = do
-    let player = Player "John" Idle (Street (1,2)) 1000 [DrugBag Crack "Kryster" 0.7 10] True
+    let player = toPlayerIntrospection $ Player "John" Idle (Street (Position 1 2)) 1000 [DrugBag Crack "Kryster" 0.7 10] True
 
     let client = Client' $ \request -> do 
             return (OK player [Exit], client)
@@ -46,14 +47,14 @@ runGui client = do
     -- Wrap the layout view in a collection and create a GUI runner
     collection <- newCollection
     _ <- addToCollection collection layoutView focusGroup
-    runUi collection defaultContext{skin=unicodeRoundedSkin}
+    runUi collection defaultContext
     
 
 newLogoView :: IO (Widget Table)
 newLogoView = acsiiArtLogo dopeAscii1
 
 
-newActionView :: Client' -> (Player -> IO ()) -> IO (Widget (Group Table))
+newActionView :: Client' -> (PlayerIntrospection -> IO ()) -> IO (Widget (Group Table))
 newActionView (Client' client) updatePlayer = do
     switcher <- newGroup
     let showLoginView = setCurrentGroupEntry switcher 0
@@ -97,18 +98,22 @@ newActionView (Client' client) updatePlayer = do
     return switcher
 
 
-newPlayerView :: IO (Widget Table, Player -> IO ())
+newPlayerView :: IO (Widget Table, PlayerIntrospection -> IO ())
 newPlayerView = do
     (statsView, updatePlayer) <- newStatsView
-    (drugBagView, updateDrugBag) <- newDrugBagView
+    (drugBagView, updateDrugBags) <- newDrugBagView
 
     playerView <- newTable [column ColAuto, column ColAuto] BorderFull
     setDefaultCellAlignment playerView AlignCenter
     addRow playerView $ statsView .|. drugBagView
-    return (playerView, updatePlayer)
+    let updatePlayer' player = do
+        updatePlayer player
+        let p = get playerIntrospectionPlayer player
+        updateDrugBags (get playerDrugBags p)
+    return (playerView, updatePlayer')
 
     where
-        newStatsView :: IO (Widget Table, Player -> IO ())
+        newStatsView :: IO (Widget Table, PlayerIntrospection -> IO ())
         newStatsView = do 
             table <- newTable [column ColAuto, column ColAuto] BorderNone
             setDefaultCellAlignment table AlignLeft
@@ -130,18 +135,29 @@ newPlayerView = do
             addRow table $ moneyLabel .|. moneyValue            
 
             let updatePlayer player = do
-                setText nameValue (get playerName player)
-                setText situationValue (show (get playerSituation player))
-                setText placeValue (show (get playerPlace player))
-                setText moneyValue (show (get playerMoney player) ++ "$")
+                let p = get playerIntrospectionPlayer player
+                setText nameValue (get playerName p)
+                setText situationValue (show (get playerSituation p))
+                setText placeValue (show (get playerPlace p))
+                setText moneyValue (show (get playerMoney p) ++ "$")
 
             return (table, updatePlayer)
 
-        newDrugBagView :: IO (Widget Table, Player -> IO ())
+        newDrugBagView :: IO (Widget Table, [DrugBag] -> IO ())
         newDrugBagView = do
-            drugBagView <- plainText "DRUG BAG"
-            w <- wrapInTable drugBagView
-            return (w, undefined)
+            list <- newStringList def_attr []
+            let updateDrugBags drugBags = do
+                clearList list
+                forM_ drugBags $ \drugBag -> do
+                    let drug = get drugBagDrug drugBag
+                    let units = get drugBagUnits drugBag
+                    let seller = get drugBagSeller drugBag
+                    let putiry = get drugBagPurity drugBag
+                    let line = show units ++ "g " ++ show drug ++ " from " ++ seller
+                    textWidget <- plainText line     
+                    addToList list line textWidget                       
+            drugBagView <- wrapInTable list
+            return (drugBagView, updateDrugBags)
 
 wrapInTable :: Show a => Widget a -> IO (Widget Table)
 wrapInTable widget = do
