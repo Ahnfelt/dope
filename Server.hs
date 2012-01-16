@@ -102,7 +102,6 @@ main :: IO ()
 main = do 
     stateVar <- createWorld
     let port = 60000
-    let ip =  Server (SockAddrInet port (ipAddress (192,168,0,148))) Stream (serveClient stateVar Nothing)
+    let ip = Server (SockAddrInet port (ipAddress (192, 168, 0, 90))) Stream (serveClient stateVar Nothing)
     serveMany Nothing [ip] >>= waitFor
-    
-    
+

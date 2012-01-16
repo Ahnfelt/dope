@@ -2,6 +2,7 @@ module Protocol where
 
 import Dope
 import State
+import ClientData
 
 data Request
     = UsePlayer String
