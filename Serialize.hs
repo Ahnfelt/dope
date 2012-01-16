@@ -20,8 +20,8 @@ instance JSON Place where
 instance JSON Position where
     readJSON json = do
         object <- readJSON json
-        Just x <- fmap (lookup "x") (readJSON object)
-        Just y <- fmap (lookup "y") (readJSON object)
+        Just x <- valFromObj "x" object
+        Just y <- valFromObj "y" object
         return (Position x y)
     showJSON (Position x y) =
         showJSON [("x", x), ("y", y)]
