@@ -17,6 +17,26 @@ instance JSON PlayerAppearance where
             ("name", showJSON $ get playerAppearanceName playerAppearance)
         ])
 
+instance JSON PlayerIntrospection where
+    readJSON json = do
+        object <- readJSON json
+        Just name <- valFromObj "name" object
+        Just situation <- valFromObj "situation" object
+        Just place <- valFromObj "place" object
+        Just money <- valFromObj "money" object
+        Just drugBags <- valFromObj "drugBags" object
+        Just online <- valFromObj "online" object
+        return (PlayerIntrospection $ Player name situation place money drugBags online)
+    showJSON (PlayerIntrospection player) = 
+        showJSON (toJSObject [
+            ("name", showJSON $ get playerName player),
+            ("situation", showJSON $ get playerSituation player),
+            ("place", showJSON $ get playerPlace player),
+            ("money", showJSON $ get playerMoney player),
+            ("drugBags", showJSON $ get playerDrugBags player),
+            ("online", showJSON $ get playerOnline player)
+        ])
+
 instance JSON SiteExterior where
     readJSON json = do
         object <- readJSON json

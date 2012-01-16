@@ -29,6 +29,15 @@ $(mkLabels [''PlayerAppearance])
 toPlayerAppearance :: Player -> PlayerAppearance
 toPlayerAppearance player = PlayerAppearance (get playerName player)
 
+-- TODO: This should have its own fields, but I'm too lazy
+data PlayerIntrospection = PlayerIntrospection {
+    _playerIntrospectionPlayer :: Player
+    }
+$(mkLabels [''PlayerIntrospection])
+
+toPlayerIntrospection :: Player -> PlayerIntrospection
+toPlayerIntrospection player = PlayerIntrospection player
+
 data SiteExterior = SiteExterior {
     _siteExteriorName :: String,
     _siteExteriorType :: SiteType,
