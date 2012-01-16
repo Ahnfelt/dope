@@ -1,15 +1,11 @@
 module Serialize where
 
 import State
-import Views
+import ClientData
 import Text.JSON
 import Control.Monad
 import Control.Applicative.Error (maybeRead)
 import Data.Label
-import Control.Concurrent.STM
-
-toPlayerAppearance :: Player -> PlayerAppearance
-toPlayerAppearance player = PlayerAppearance (get playerName player)
 
 instance JSON PlayerAppearance where
     readJSON json = do
@@ -20,9 +16,6 @@ instance JSON PlayerAppearance where
         showJSON (toJSObject [
             ("name", showJSON $ get playerAppearanceName playerAppearance)
         ])
-
-toSiteExterior :: Site -> SiteExterior
-toSiteExterior site = SiteExterior (get siteName site) (get siteType site) (get sitePosition site)
 
 instance JSON SiteExterior where
     readJSON json = do
@@ -37,11 +30,6 @@ instance JSON SiteExterior where
             ("type", showJSON $ get siteExteriorType siteExterior),
             ("position", showJSON $ get siteExteriorPosition siteExterior)
         ])
-
-toSiteInterior :: Site -> STM SiteInterior
-toSiteInterior site = do
-    guests <- mapM readTVar (get siteGuestVars site)
-    return (SiteInterior (toSiteExterior site) (map (get playerName) guests))
 
 instance JSON SiteInterior where
     readJSON json = do

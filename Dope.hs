@@ -12,7 +12,7 @@ import Data.List (find)
 import Prelude hiding ((.), id)
 
 import State
-import Views
+import ClientData
 
 options :: Player -> GameState -> STM [Option]
 options player state =

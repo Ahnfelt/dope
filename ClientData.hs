@@ -1,8 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Views where
+module ClientData where
 
 import State
 import Data.Label
+import Control.Concurrent.STM
 
 data Optional a = Some a | None deriving (Show, Read)
 
@@ -25,6 +26,9 @@ data PlayerAppearance = PlayerAppearance {
     }
 $(mkLabels [''PlayerAppearance])
 
+toPlayerAppearance :: Player -> PlayerAppearance
+toPlayerAppearance player = PlayerAppearance (get playerName player)
+
 data SiteExterior = SiteExterior {
     _siteExteriorName :: String,
     _siteExteriorType :: SiteType,
@@ -32,9 +36,17 @@ data SiteExterior = SiteExterior {
     }
 $(mkLabels [''SiteExterior])
 
+toSiteExterior :: Site -> SiteExterior
+toSiteExterior site = SiteExterior (get siteName site) (get siteType site) (get sitePosition site)
+
 data SiteInterior = SiteInterior {
     _siteInteriorExterior :: SiteExterior,
     _siteInteriorVisitors :: [PlayerName]
     }
 $(mkLabels [''SiteInterior])
+
+toSiteInterior :: Site -> STM SiteInterior
+toSiteInterior site = do
+    guests <- mapM readTVar (get siteGuestVars site)
+    return (SiteInterior (toSiteExterior site) (map (get playerName) guests))
 
