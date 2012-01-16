@@ -1,16 +1,11 @@
-{-# LANGUAGE TemplateHaskell, TypeOperators, KindSignatures #-}
 module Serialize where
 
 import State
+import Views
 import Text.JSON
 import Control.Monad
 import Control.Applicative.Error (maybeRead)
 import Data.Label
-
-data PlayerAppearance = PlayerAppearance {
-    _playerAppearanceName :: String
-    }
-$(mkLabels [''PlayerAppearance])
 
 toPlayerAppearance :: Player -> PlayerAppearance
 toPlayerAppearance player = PlayerAppearance (get playerName player)
@@ -24,13 +19,6 @@ instance JSON PlayerAppearance where
         showJSON (toJSObject [
             ("name", showJSON $ get playerAppearanceName playerAppearance)
         ])
-
-data SiteExterior = SiteExterior {
-    _siteExteriorName :: String,
-    _siteExteriorType :: SiteType,
-    _siteExteriorPosition :: Position
-    }
-$(mkLabels [''SiteExterior])
 
 toSiteExterior :: Site -> SiteExterior
 toSiteExterior site = SiteExterior (get siteName site) (get siteType site) (get sitePosition site)
