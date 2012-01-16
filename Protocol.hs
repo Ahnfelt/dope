@@ -12,17 +12,18 @@ data Request
     deriving (Show, Read, Eq)
     
 data Response
-    = OK Player [Option]
+    = OK PlayerIntrospection [Option]
     | Error Error
     | Bye
     deriving (Show, Read, Eq)
 
 data Error
     = InvalidRequest
-    | IlligalAct String Player [Option]
+    | IllegalAct String PlayerIntrospection [Option]
     | PlayerDoesNotExist
     | NotLoggedIn
-    | PlayerAlreadyExist
+    | PlayerAlreadyExists
     deriving (Show, Read, Eq)
     
 data Client = Client (Request -> IO (Either Response (Response, Client)))
+

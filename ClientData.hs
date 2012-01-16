@@ -33,6 +33,7 @@ toPlayerAppearance player = PlayerAppearance (get playerName player)
 data PlayerIntrospection = PlayerIntrospection {
     _playerIntrospectionPlayer :: Player
     }
+    deriving (Show, Read, Eq)
 $(mkLabels [''PlayerIntrospection])
 
 toPlayerIntrospection :: Player -> PlayerIntrospection

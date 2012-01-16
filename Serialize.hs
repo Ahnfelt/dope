@@ -1,11 +1,13 @@
 module Serialize where
 
-import State
-import ClientData
 import Text.JSON
 import Control.Monad
 import Control.Applicative.Error (maybeRead)
 import Data.Label
+
+import State
+import ClientData
+import Protocol
 
 instance JSON PlayerAppearance where
     readJSON json = do
@@ -115,16 +117,26 @@ instance JSON SiteType where
 instance JSON DrugBag where
     readJSON json = do
         object <- readJSON json
+        Just drug <- valFromObj "drug" object
         Just seller <- valFromObj "seller" object
         Just purity <- valFromObj "purity" object
         Just units <- valFromObj "units" object
-        return (DrugBag seller purity units)
+        return (DrugBag drug seller purity units)
     showJSON drugBag = 
         showJSON (toJSObject [
+            ("drug", showJSON $ get drugBagDrug drugBag),
             ("seller", showJSON $ get drugBagSeller drugBag),
             ("purity", showJSON $ get drugBagPurity drugBag),
             ("units", showJSON $ get drugBagUnits drugBag)
         ])
+
+instance JSON Drug where
+    readJSON json = do
+        [tag] <- readJSON json
+        case maybeRead tag of
+            Just value -> return value
+            Nothing -> fail "Failed to read Drug"
+    showJSON drug = showJSON [show drug]
 
 instance JSON Option where
     readJSON json = msum [
@@ -174,4 +186,68 @@ instance JSON Option where
         BribePolice None -> showJSON ["BribePolice"]
         BribePolice (Some money) -> showJSON ("BribePolice", money)
         SnitchFriend playerName -> showJSON ("SnitchFriend", playerName)
+
+
+instance JSON Request where
+    readJSON json = msum [
+            do 
+                ("UsePlayer", playerName) <- readJSON json
+                return (UsePlayer playerName),
+            do 
+                ("NewPlayer", playerName) <- readJSON json
+                return (NewPlayer playerName),
+            do 
+                ("Act", option) <- readJSON json
+                return (Act option),
+            do 
+                ["Quit"] <- readJSON json
+                return Quit
+        ]
+    showJSON request = case request of
+        UsePlayer playerName -> showJSON ("UsePlayer", playerName)
+        NewPlayer playerName -> showJSON ("NewPlayer", playerName)
+        Act option -> showJSON ("Act", option)
+        Quit -> showJSON ["Quit"]
+
+instance JSON Response where
+    readJSON json = msum [
+            do 
+                ("OK", playerIntrospection, options) <- readJSON json
+                return (OK playerIntrospection options),
+            do 
+                ("Error", error) <- readJSON json
+                return (Protocol.Error error),
+            do 
+                ["Bye"] <- readJSON json
+                return Bye
+        ]
+    showJSON response = case response of
+        OK playerIntrospection options -> showJSON ("OK", playerIntrospection, options)
+        Protocol.Error error -> showJSON ("Error", error)
+        Bye -> showJSON ["Bye"]
+
+instance JSON Protocol.Error where
+    readJSON json = msum [
+            do 
+                ["InvalidRequest"] <- readJSON json
+                return InvalidRequest,
+            do 
+                ("IllegalAct", error, playerIntrospection, options) <- readJSON json
+                return (IllegalAct error playerIntrospection options),
+            do 
+                ["PlayerDoesNotExist"] <- readJSON json
+                return PlayerDoesNotExist,
+            do 
+                ["NotLoggedIn"] <- readJSON json
+                return NotLoggedIn,
+            do 
+                ["PlayerAlreadyExists"] <- readJSON json
+                return PlayerAlreadyExists
+        ]
+    showJSON response = case response of
+        InvalidRequest -> showJSON ["InvalidRequest"]
+        IllegalAct error player options -> showJSON ("IllegalAct", error, player, options)
+        PlayerDoesNotExist -> showJSON ["PlayerDoesNotExist"]
+        NotLoggedIn -> showJSON ["NotLoggedIn"]
+        PlayerAlreadyExists -> showJSON ["PlayerAlreadyExist"]
 
