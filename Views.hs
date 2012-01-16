@@ -32,3 +32,9 @@ data SiteExterior = SiteExterior {
     }
 $(mkLabels [''SiteExterior])
 
+data SiteInterior = SiteInterior {
+    _siteInteriorExterior :: SiteExterior,
+    _siteInteriorVisitors :: [PlayerName]
+    }
+$(mkLabels [''SiteInterior])
+

@@ -6,6 +6,7 @@ import Text.JSON
 import Control.Monad
 import Control.Applicative.Error (maybeRead)
 import Data.Label
+import Control.Concurrent.STM
 
 toPlayerAppearance :: Player -> PlayerAppearance
 toPlayerAppearance player = PlayerAppearance (get playerName player)
@@ -35,6 +36,23 @@ instance JSON SiteExterior where
             ("name", showJSON $ get siteExteriorName siteExterior),
             ("type", showJSON $ get siteExteriorType siteExterior),
             ("position", showJSON $ get siteExteriorPosition siteExterior)
+        ])
+
+toSiteInterior :: Site -> STM SiteInterior
+toSiteInterior site = do
+    guests <- mapM readTVar (get siteGuestVars site)
+    return (SiteInterior (toSiteExterior site) (map (get playerName) guests))
+
+instance JSON SiteInterior where
+    readJSON json = do
+        object <- readJSON json
+        Just exterior <- valFromObj "exterior" object
+        Just visitors <- valFromObj "visitors" object
+        return (SiteInterior exterior visitors)
+    showJSON siteInterior = 
+        showJSON (toJSObject [
+            ("exterior", showJSON $ get siteInteriorExterior siteInterior),
+            ("visitors", showJSON $ get siteInteriorVisitors siteInterior)
         ])
 
 instance JSON Place where
