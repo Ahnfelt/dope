@@ -86,6 +86,20 @@ instance JSON SiteType where
             Nothing -> fail "Failed to read SiteType"
     showJSON siteType = showJSON [show siteType]
 
+instance JSON DrugBag where
+    readJSON json = do
+        object <- readJSON json
+        Just seller <- valFromObj "seller" object
+        Just purity <- valFromObj "purity" object
+        Just units <- valFromObj "units" object
+        return (DrugBag seller purity units)
+    showJSON drugBag = 
+        showJSON (toJSObject [
+            ("seller", showJSON $ get drugBagSeller drugBag),
+            ("purity", showJSON $ get drugBagPurity drugBag),
+            ("units", showJSON $ get drugBagUnits drugBag)
+        ])
+
 instance JSON Option where
     readJSON json = msum [
             do 
