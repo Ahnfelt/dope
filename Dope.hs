@@ -76,14 +76,14 @@ act playerVar option stateVar = do
                         else return $ Just "You ain't got the money"
                 TakeACap None -> return $ Just "Take a cap, where to"
                 Enter siteName -> do
-                    movePlayer stateVar (get playerName player) (Inside siteName)
+                    movePlayer state (get playerName player) (Inside siteName)
                     return Nothing
                 Exit -> do
                     let Inside siteName = get playerPlace player
                     case Map.lookup siteName (get stateSiteVars state) of
                         Just siteVar -> do
                             site <- readTVar siteVar
-                            movePlayer stateVar (get playerName player) (Street (get sitePosition site))
+                            movePlayer state (get playerName player) (Street (get sitePosition site))
                             return Nothing
                         Nothing -> error "Error in options - site should exist"
                 DealDrugs (Some index) -> do
@@ -104,14 +104,14 @@ act playerVar option stateVar = do
                 Trade partnerName -> return $ Just "Trading is not yet implemented"
                 AbortTrade -> return $ Just "Trading is not yet implemented"
                 BribePolice (Some money) -> do
-                    movePlayer stateVar (get playerName player) (Inside "Jail")
+                    movePlayer state (get playerName player) (Inside "Jail")
                     return Nothing
                 BribePolice None -> return $ Just "I wonder how much dough will turn the tides..."
                 SnitchFriend friendName -> do
-                    movePlayer stateVar (get playerName player) (Inside "Jail")
+                    movePlayer state (get playerName player) (Inside "Jail")
                     return Nothing
         else return $ Just "Option unavailable"
 
 taxameter :: Position -> Position -> Integer 
-taxameter (x1, y1) (x2, y2) = fromIntegral $ abs (x2 - x1) + abs (y2 - y1)
+taxameter (Position x1 y1) (Position x2 y2) = fromIntegral $ abs (x2 - x1) + abs (y2 - y1)
 

@@ -11,7 +11,7 @@ import Prelude hiding ((.), id)
 
 type Name = String
 
-type Position = (Int, Int)
+data Position = Position Int Int deriving (Show, Read, Eq)
 type SiteName = String
 type PlayerName = String
 
@@ -91,9 +91,8 @@ getPlayerNames playerVars = do
 
 -- Maintains the invariant that a player is only in one place at a time,
 -- even though this fact is represented in multiple places.
-movePlayer :: TVar GameState -> PlayerName -> Place -> STM ()
-movePlayer stateVar playerName place = do
-    state <- readTVar stateVar
+movePlayer :: GameState -> PlayerName -> Place -> STM ()
+movePlayer state playerName place = do
     let Just playerVar = Map.lookup playerName (get statePlayerVars state)
     player <- readTVar playerVar
     case get playerPlace player of
