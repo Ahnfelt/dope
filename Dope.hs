@@ -12,22 +12,7 @@ import Data.List (find)
 import Prelude hiding ((.), id)
 
 import State
-
-data Optional a = Some a | None deriving (Show, Read)
-
-instance Eq a => Eq (Optional a) where
-    _ == _ = True
-
-data Option 
-    = TakeACap (Optional Position)
-    | Enter SiteName
-    | Exit
-    | DealDrugs (Optional Int)
-    | Trade PlayerName
-    | AbortTrade
-    | BribePolice (Optional Integer)
-    | SnitchFriend PlayerName
-    deriving (Show, Read, Eq)
+import Views
 
 options :: Player -> GameState -> STM [Option]
 options player state =

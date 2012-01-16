@@ -86,3 +86,52 @@ instance JSON SiteType where
             Nothing -> fail "Failed to read SiteType"
     showJSON siteType = showJSON [show siteType]
 
+instance JSON Option where
+    readJSON json = msum [
+            do 
+                ["TakeACap"] <- readJSON json
+                return (TakeACap None),
+            do 
+                ("TakeACap", position) <- readJSON json
+                return (TakeACap (Some position)),
+            do 
+                ("Enter", siteName) <- readJSON json
+                return (Enter siteName),
+            do 
+                ["Exit"] <- readJSON json
+                return Exit,
+            do 
+                ("DealDrugs", bagIndex) <- readJSON json
+                return (DealDrugs (Some bagIndex)),
+            do 
+                ["DealDrugs"] <- readJSON json
+                return (DealDrugs None),
+            do 
+                ("Trade", playerName) <- readJSON json
+                return (Trade playerName),
+            do 
+                ["AbortTrade"] <- readJSON json
+                return (AbortTrade),
+            do 
+                ("BribePolice", money) <- readJSON json
+                return (BribePolice (Some money)),
+            do 
+                ["BribePolice"] <- readJSON json
+                return (BribePolice None),
+            do 
+                ("SnitchFriend", playerName) <- readJSON json
+                return (SnitchFriend playerName)
+        ]
+    showJSON option = case option of
+        TakeACap None -> showJSON ["TakeACap"]
+        TakeACap (Some position) -> showJSON ("TakeACap", position)
+        Enter siteName -> showJSON ("Enter", siteName)
+        Exit -> showJSON ["Exit"]
+        DealDrugs None -> showJSON ["DealDrugs"]
+        DealDrugs (Some index) -> showJSON ("DealDrugs", index)
+        Trade playerName -> showJSON ("Trade", playerName)
+        AbortTrade -> showJSON ["AbortTrade"]
+        BribePolice None -> showJSON ["BribePolice"]
+        BribePolice (Some money) -> showJSON ("BribePolice", money)
+        SnitchFriend playerName -> showJSON ("SnitchFriend", playerName)
+
