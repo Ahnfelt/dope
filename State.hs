@@ -158,6 +158,9 @@ newPlayerVar stateVar name = do
             let jailPosition = get sitePosition jail
             let player = Player name Idle (Street jailPosition) 100 [] True
             var <- newTVar player
+            let playerVars = Map.insert name var (get statePlayerVars state)
+            let state' = set statePlayerVars playerVars state
+            writeTVar stateVar state'
             return (Just var)
             
 

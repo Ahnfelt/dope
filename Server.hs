@@ -14,6 +14,7 @@ import Prelude hiding ((.), id)
 import Protocol
 import Dope
 import State
+import ClientData
 
 serveClient :: TVar GameState -> Maybe (TVar Player) -> (Handle, HostName, PortNumber) -> IO ()
 serveClient stateVar playerVar (handle, host, port) = do
@@ -31,10 +32,10 @@ serveClient stateVar playerVar (handle, host, port) = do
                         player <- readTVar playerVar
                         state <- readTVar stateVar
                         possibilities <- options player state
-                        return (error, player, possibilities)
+                        return (error, toPlayerIntrospection player, possibilities)
                     respond $ case error of
                         Nothing -> OK player possibilities
-                        Just reason -> Error (IlligalAct reason player possibilities)
+                        Just reason -> Error (IllegalAct reason player possibilities)
                     inGameLoop playerVar
                 Quit -> do
                     atomically $ do
@@ -53,7 +54,7 @@ serveClient stateVar playerVar (handle, host, port) = do
                                 let player' = set playerOnline True player
                                 writeTVar playerVar player'
                                 possibilities <- options player' state
-                                return (player', possibilities)
+                                return (toPlayerIntrospection player', possibilities)
                             respond $ OK player possibilities
                             inGameLoop playerVar 
                         Nothing -> do 
@@ -67,11 +68,11 @@ serveClient stateVar playerVar (handle, host, port) = do
                                 player <- readTVar playerVar
                                 state <- readTVar stateVar
                                 possibilities <- options player state
-                                return (player, possibilities)
+                                return (toPlayerIntrospection player, possibilities)
                             respond $ OK player possibilities
                             inGameLoop playerVar
                         Nothing -> do 
-                            respond (Error PlayerAlreadyExist)
+                            respond (Error PlayerAlreadyExists)
                             loginLoop
                 Act _ -> do
                     respond (Error NotLoggedIn)
@@ -102,6 +103,6 @@ main :: IO ()
 main = do 
     stateVar <- createWorld
     let port = 60000
-    let ip = Server (SockAddrInet port (ipAddress (192, 168, 0, 90))) Stream (serveClient stateVar Nothing)
+    let ip = Server (SockAddrInet port (ipAddress (127, 0, 0, 1))) Stream (serveClient stateVar Nothing)
     serveMany Nothing [ip] >>= waitFor
 

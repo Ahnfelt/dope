@@ -25,5 +25,3 @@ data Error
     | PlayerAlreadyExists
     deriving (Show, Read, Eq)
     
-data Client = Client (Request -> IO (Either Response (Response, Client)))
-
